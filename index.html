@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1d4e89">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Vaccination">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png" type="image/png">
+<title>Recueil Vaccination</title>
+<style>
+  :root{
+    --bg:#f3f5f8; --surface:#ffffff; --ink:#14273d; --muted:#5b6b7d;
+    --line:#e0e6ee; --accent:#2563a8; --accent-deep:#1d4e89; --accent-soft:#e5eef8;
+    --danger:#a83a48;
+    --low:#1f8a5b; --low-soft:#e3f3ea; --mid:#a06a12; --mid-soft:#fbf0db;
+    --high:#a83a48; --high-soft:#f7e3e6;
+    --radius:14px; --tap:46px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:16px;line-height:1.45;padding-bottom:env(safe-area-inset-bottom);-webkit-font-smoothing:antialiased}
+  header.topbar{position:sticky;top:0;z-index:30;
+    background:linear-gradient(180deg,var(--accent-deep),var(--accent));color:#fff;
+    padding:calc(env(safe-area-inset-top) + 12px) 16px 12px;box-shadow:0 2px 10px rgba(29,78,137,.18)}
+  .topbar-row{display:flex;align-items:center;gap:10px;justify-content:space-between}
+  .brand{display:flex;flex-direction:column;line-height:1.15}
+  .brand b{font-size:18px;font-weight:700;letter-spacing:-.2px}
+  .brand span{font-size:12px;opacity:.85;font-weight:500}
+  .iconbtn{background:rgba(255,255,255,.16);border:none;color:#fff;min-width:var(--tap);height:var(--tap);
+    border-radius:12px;font-size:16px;font-weight:700;padding:0 14px;cursor:pointer;
+    display:inline-flex;align-items:center;justify-content:center}
+  .iconbtn.ghost{background:transparent}
+  .wrap{max-width:680px;margin:0 auto;padding:16px}
+  .toolbar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+  .btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);min-height:var(--tap);
+    border-radius:12px;padding:0 14px;font-size:14px;font-weight:600;cursor:pointer;
+    display:inline-flex;align-items:center;gap:7px;justify-content:center}
+  .btn:active{transform:scale(.97)}
+  .btn:focus-visible{outline:3px solid var(--accent-soft);outline-offset:2px}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.danger{color:var(--danger);border-color:#eccfd3}
+  .btn.block{flex:1}
+  .btn.small{min-height:36px;font-size:13px;padding:0 11px}
+  .count{font-size:13px;color:var(--muted);margin:2px 2px 12px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    padding:14px 16px;margin-bottom:10px;cursor:pointer;display:flex;align-items:center;
+    justify-content:space-between;gap:12px}
+  .card h3{margin:0;font-size:16px;font-weight:700}
+  .card small{color:var(--muted);font-size:13px;display:block}
+  .card .chev{color:var(--muted);font-size:20px}
+  .card .right{display:flex;align-items:center;gap:8px}
+  .empty{text-align:center;color:var(--muted);padding:46px 20px;
+    border:1px dashed var(--line);border-radius:var(--radius);background:var(--surface)}
+  .empty b{display:block;color:var(--ink);margin-bottom:6px}
+
+  .status{border-radius:var(--radius);padding:12px 14px;margin-bottom:12px;font-size:14px;font-weight:600;
+    background:var(--low-soft);color:var(--low);border:1px solid #c9e7d6}
+  .status.warn{background:var(--high-soft);color:var(--high);border-color:#eccfd3}
+  .status.pending{background:var(--accent-soft);color:var(--accent-deep);border-color:#cfdeef}
+  .status ul{margin:6px 0 0;padding-left:18px;font-weight:500}
+
+  details.sec{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    margin-bottom:10px;overflow:hidden}
+  details.sec>summary{list-style:none;cursor:pointer;padding:14px 16px;font-weight:700;font-size:15px;
+    display:flex;align-items:center;justify-content:space-between;gap:10px}
+  details.sec>summary::-webkit-details-marker{display:none}
+  details.sec>summary .arrow{color:var(--muted);transition:transform .18s}
+  details.sec[open]>summary .arrow{transform:rotate(90deg)}
+  details.sec>summary .lbl{display:flex;align-items:center;gap:10px}
+  details.sec>summary .tick{width:8px;height:8px;border-radius:50%;background:var(--line);flex:none}
+  details.sec.filled>summary .tick{background:var(--accent)}
+  .sec-body{padding:4px 16px 16px;border-top:1px solid var(--line)}
+  .sec-note{font-size:13px;color:var(--muted);margin:12px 0 0;line-height:1.4}
+  .badge{font-size:12px;font-weight:700;padding:4px 9px;border-radius:20px;background:var(--accent-soft);color:var(--accent-deep);white-space:nowrap}
+  .badge.low{background:var(--low-soft);color:var(--low)}
+  .badge.high{background:var(--high-soft);color:var(--high)}
+  .field{margin-top:14px}
+  .field>label,.field>.flabel{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px}
+  .field input[type=text],.field input[type=date],.field input[type=time],.field input[type=month],
+  .field input[type=tel],.field textarea{
+    width:100%;border:1px solid var(--line);border-radius:11px;padding:11px 12px;font-size:16px;
+    font-family:inherit;color:var(--ink);background:#fcfdfe;min-height:46px}
+  .field input:focus,.field textarea:focus{outline:2px solid var(--accent-soft);border-color:var(--accent)}
+  .field textarea{min-height:70px;resize:vertical;line-height:1.4}
+  .stack{display:flex;flex-direction:column;gap:6px}
+  .seg{display:flex;gap:6px;flex-wrap:wrap}
+  .seg .opt{flex:1;min-width:80px}
+  .opt{position:relative}
+  .opt input{position:absolute;opacity:0;pointer-events:none}
+  .opt label{display:flex;align-items:center;justify-content:center;gap:10px;text-align:center;
+    min-height:44px;padding:8px 13px;border-radius:11px;border:1px solid var(--line);
+    background:#fcfdfe;font-size:15px;font-weight:500;color:var(--ink);cursor:pointer;line-height:1.3}
+  .stack .opt label{justify-content:flex-start;text-align:left}
+  .opt input:checked + label{background:var(--accent);border-color:var(--accent);color:#fff}
+  .opt.risk input:checked + label{background:var(--high);border-color:var(--high)}
+  .opt input:focus-visible + label{outline:3px solid var(--accent-soft);outline-offset:2px}
+  .check{display:flex;align-items:center;gap:10px;min-height:46px;padding:8px 13px;border:1px solid var(--line);
+    border-radius:11px;background:#fcfdfe;font-size:15px;cursor:pointer}
+  .check input{width:22px;height:22px;accent-color:var(--accent);flex:none}
+  .alert{margin-top:8px;padding:9px 12px;border-radius:10px;font-size:13.5px;font-weight:600;
+    background:var(--mid-soft);color:var(--mid)}
+  .alert.red{background:var(--high-soft);color:var(--high)}
+  .row2{display:flex;gap:10px}
+  .row2 .field{flex:1;min-width:0}
+  .formactions{position:sticky;bottom:0;
+    background:linear-gradient(180deg,rgba(243,245,248,0),var(--bg) 26%);
+    padding:14px 0 10px;display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+  .modal-bg{position:fixed;inset:0;background:rgba(20,39,61,.45);display:none;
+    align-items:flex-end;justify-content:center;z-index:50}
+  .modal-bg.show{display:flex}
+  .modal{background:var(--surface);width:100%;max-width:680px;border-radius:18px 18px 0 0;
+    padding:18px 16px calc(env(safe-area-inset-bottom) + 18px);max-height:88vh;overflow:auto}
+  .modal h2{margin:0 0 4px;font-size:18px}
+  .modal p{color:var(--muted);font-size:14px;margin:4px 0 14px}
+  .modal .info-block{font-size:14px;line-height:1.55}
+  .modal .info-block b{color:var(--accent-deep)}
+  .rep-h{font-size:17px;font-weight:700;padding:0 0 10px;border-bottom:2px solid var(--accent);margin-bottom:12px;
+    display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+  .rep-h span{font-size:13px;font-weight:600;color:var(--muted)}
+  .rep-sec{margin-bottom:16px}
+  .rep-sec h3{font-size:14px;margin:0 0 6px;color:var(--accent-deep)}
+  .rep-sec ul{list-style:none;margin:0;padding:0}
+  .rep-sec li{padding:7px 0;border-bottom:1px solid var(--line);font-size:13px;color:var(--muted);line-height:1.35}
+  .rep-v{display:block;font-size:15.5px;font-weight:600;color:var(--ink);margin-top:2px}
+  .rep-v.risk{color:var(--high)}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 22px);
+    background:var(--ink);color:#fff;padding:11px 18px;border-radius:30px;font-size:14px;font-weight:600;
+    z-index:60;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+  .hidden{display:none!important}
+  #printArea{display:none}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+  @media print{
+    @page{size:A4;margin:14mm 13mm}
+    body{background:#fff;font-size:11pt}
+    .topbar,#listView,#formView,.modal-bg,.toast{display:none!important}
+    #printArea{display:block!important}
+    .p-doc{color:#000;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+    .p-head{border-bottom:2px solid #1d4e89;padding-bottom:8px;margin-bottom:14px}
+    .p-head h1{margin:0 0 4px;font-size:16pt;color:#1d4e89}
+    .p-head .p-meta{font-size:10pt;color:#333}
+    .p-status{margin:0 0 12px;padding:6px 8px;border-left:3px solid #1f8a5b;background:#eef7f1;font-size:10pt;font-weight:600}
+    .p-status.warn{border-color:#a83a48;background:#f9ecee}
+    .p-sec{margin-bottom:12px}
+    .p-sec h2{font-size:11.5pt;margin:0 0 6px;padding:5px 8px;background:#e5eef8;color:#1d4e89;border-radius:4px}
+    table.p-tab{width:100%;border-collapse:collapse;font-size:10pt}
+    table.p-tab td{border-bottom:1px solid #dfe5ec;padding:4px 8px;vertical-align:top}
+    table.p-tab tr{break-inside:avoid}
+    td.p-lbl{width:48%;color:#333}
+    td.p-val{font-weight:600;white-space:pre-wrap}
+    .p-foot{margin-top:18px;padding-top:8px;border-top:1px solid #ccc;font-size:8.5pt;color:#555}
+    .p-sign{margin-top:16px;display:flex;gap:16px}
+    .p-sign div{flex:1;border:1px solid #bbb;border-radius:4px;height:60px;padding:4px 6px;font-size:8.5pt;color:#666}
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-row">
+    <div class="brand">
+      <b>Recueil Vaccination</b>
+      <span>Contre-indications · traçabilité · hors-ligne</span>
+    </div>
+    <button class="iconbtn ghost" id="btnInfo" title="Confidentialité et mode d'emploi">i</button>
+  </div>
+</header>
+
+<main class="wrap" id="listView">
+  <div class="toolbar">
+    <button class="btn primary block" id="btnNew">+ Nouvelle vaccination</button>
+    <button class="btn" id="btnExport">Sauvegarde</button>
+    <button class="btn" id="btnImport">Importer</button>
+    <input type="file" id="fileInput" accept="application/json,.json" class="hidden">
+  </div>
+  <div class="count" id="count"></div>
+  <div id="cards"></div>
+</main>
+
+<main class="wrap hidden" id="formView">
+  <button class="btn" id="btnBack" style="margin-bottom:14px">‹ Liste</button>
+  <div id="statusBox"></div>
+  <div id="formFields"></div>
+  <div class="formactions">
+    <button class="btn primary block" id="btnSave">Enregistrer</button>
+    <button class="btn block" id="btnCopy">Vue pour report</button>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:10px">
+    <button class="btn block" id="btnPdf">Créer le PDF</button>
+    <button class="btn block" id="btnShareOne">Exporter (fichier)</button>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:28px">
+    <button class="btn danger block" id="btnDelete">Supprimer cette fiche</button>
+  </div>
+</main>
+
+<div id="printArea"></div>
+
+<div class="modal-bg" id="modalBg"><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* Toutes les données restent dans ce téléphone. Aucune requête réseau.
+   Clé distincte de celle du Recueil BSI (même domaine github.io). */
+const STORE_KEY="recueils_vaccination_v1";
+const LASTVAX_KEY="vaccination_dernier_lot_v1";
+const $=s=>document.querySelector(s);
+const YN=["Non","Oui"];
+
+/* type : text | tel | date | time | month | textarea | yn | seg | check
+   showIf : [idChamp, valeur] → champ visible seulement dans ce cas
+   risk : la réponse « Oui » est une alerte (contre-indication possible) */
+const SCHEMA=[
+ { title:"Personne vaccinée", fields:[
+   {id:"ident",  label:"Nom / initiales", type:"text", ph:"ex. MARTIN J."},
+   {id:"ddn",    label:"Date de naissance", type:"date"},
+   {id:"adresse",label:"Adresse", type:"text"},
+   {id:"tel",    label:"Téléphone", type:"tel"},
+ ]},
+ { title:"Assurance maladie", fields:[
+   {id:"bon", label:"Bon adressé par l'Assurance maladie", type:"yn"},
+   {id:"presc", label:"Sans bon : prescription", type:"seg",
+     opts:["Prescription médicale","Prescription infirmière","Aucune"], showIf:["bon","Non"]},
+ ]},
+ { title:"Médecin traitant", fields:[
+   {id:"medecin",   label:"Nom", type:"text"},
+   {id:"med_adr",   label:"Adresse", type:"text"},
+   {id:"med_tel",   label:"Téléphone", type:"tel"},
+ ]},
+ { title:"Contre-indications (RCP)", note:"Contre-indication absolue ou temporaire notée dans le résumé des caractéristiques du produit.", fields:[
+   {id:"ci_reac",   label:"Réaction allergique après une vaccination antérieure ?", type:"yn", risk:true},
+   {id:"ci_reac_d", label:"Précisions", type:"text", showIf:["ci_reac","Oui"]},
+   {id:"ci_all",    label:"Allergie connue ?", type:"yn", risk:true},
+   {id:"ci_all_d",  label:"Laquelle", type:"text", showIf:["ci_all","Oui"]},
+   {id:"ci_fievre", label:"État fébrile, maladie infectieuse intercurrente ou anti-infectieux en cours ?", type:"yn", risk:true},
+   {id:"ci_fievre_d",label:"Précisions", type:"text", showIf:["ci_fievre","Oui"]},
+   {id:"ci_ac",     label:"Traitement anticoagulant ?", type:"yn"},
+   {id:"ci_ac_d",   label:"Lequel", type:"text", showIf:["ci_ac","Oui"]},
+   {id:"info_ei",   label:"Personne informée des effets secondaires éventuels", type:"check"},
+ ]},
+ { title:"Vaccin utilisé", fields:[
+   {id:"vaccin", label:"Dénomination commerciale", type:"text", ph:"ex. Efluelda 60 µg HA/souche", list:"vaxList"},
+   {id:"lot",    label:"N° de lot", type:"text", ph:"ex. 6DE73", upper:true},
+   {id:"peremp", label:"Date de péremption", type:"month"},
+ ]},
+ { title:"Administration", fields:[
+   {id:"datevac", label:"Date", type:"date", half:true},
+   {id:"heure",   label:"Heure", type:"time", half:true},
+   {id:"voie",    label:"Voie", type:"seg", opts:["Intramusculaire","Sous-cutanée"]},
+   {id:"site",    label:"Site d'injection", type:"seg", opts:["Deltoïde G","Deltoïde D","Autre"]},
+   {id:"obs",     label:"Observations / réaction immédiate", type:"textarea"},
+ ]},
+];
+const FIELDS=SCHEMA.flatMap(s=>s.fields);
+
+let fiches=load(), currentId=null;
+
+function load(){ try{return JSON.parse(localStorage.getItem(STORE_KEY))||[];}catch(e){return[];} }
+function persist(){ try{localStorage.setItem(STORE_KEY,JSON.stringify(fiches));}
+  catch(e){toast("Stockage saturé — faites une sauvegarde");} }
+function lastVax(){ try{return JSON.parse(localStorage.getItem(LASTVAX_KEY))||null;}catch(e){return null;} }
+function setLastVax(v){ try{localStorage.setItem(LASTVAX_KEY,JSON.stringify(v));}catch(e){} }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+const p2=n=>String(n).padStart(2,"0");
+function today(){ const d=new Date(); return d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate()); }
+function nowTime(){ const d=new Date(); return p2(d.getHours())+":"+p2(d.getMinutes()); }
+function fmtDate(s){ if(!s)return""; const p=s.split("-");
+  if(p.length===3) return p[2]+"/"+p[1]+"/"+p[0];
+  if(p.length===2) return p[1]+"/"+p[0];
+  return s; }
+function esc(s){ return String(s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m])); }
+function display(f,v){ if(f.type==="check") return v?"Oui":""; if(f.type==="date"||f.type==="month") return fmtDate(v); return v; }
+
+/* ---------- Vérifications ---------- */
+function checks(d){
+  const warn=[], todo=[];
+  if(d.ci_reac==="Oui") warn.push("Réaction allergique lors d'une vaccination antérieure");
+  if(d.ci_all==="Oui")  warn.push("Allergie connue"+(d.ci_all_d?" : "+d.ci_all_d:"")+" — vérifier les composants (RCP)");
+  if(d.ci_fievre==="Oui") warn.push("État fébrile / infection / anti-infectieux en cours — report possible");
+  if(d.bon==="Non" && d.presc==="Aucune") warn.push("Ni bon de l'Assurance maladie ni prescription");
+  if(d.peremp){
+    const ref=(d.datevac||today()).slice(0,7);
+    if(d.peremp<ref) warn.push("Vaccin périmé ("+fmtDate(d.peremp)+")");
+  }
+  if(d.ci_ac==="Oui" && d.voie==="Intramusculaire") warn.push("Anticoagulant : injection en sous-cutané");
+  ["ci_reac","ci_all","ci_fievre","ci_ac"].forEach(k=>{ if(!d[k]) todo.push(FIELDS.find(f=>f.id===k).label.replace(" ?","")); });
+  if(!d.bon) todo.push("Bon de l'Assurance maladie");
+  if(d.bon==="Non" && !d.presc) todo.push("Prescription");
+  if(!d.vaccin) todo.push("Vaccin");
+  if(!d.lot) todo.push("N° de lot");
+  if(!d.info_ei) todo.push("Information sur les effets secondaires");
+  return {warn,todo};
+}
+function statusHTML(d){
+  const {warn,todo}=checks(d);
+  if(warn.length) return '<div class="status warn">À vérifier avant d\'injecter<ul>'+warn.map(w=>'<li>'+esc(w)+'</li>').join("")+'</ul></div>';
+  if(todo.length) return '<div class="status pending">Reste à renseigner<ul>'+todo.map(w=>'<li>'+esc(w)+'</li>').join("")+'</ul></div>';
+  return '<div class="status">Aucune contre-indication relevée — fiche complète</div>';
+}
+
+/* ---------- Liste ---------- */
+function renderList(){
+  const cards=$("#cards");
+  $("#count").textContent=fiches.length
+    ? fiches.length+(fiches.length>1?" fiches enregistrées":" fiche enregistrée"):"";
+  if(!fiches.length){
+    cards.innerHTML='<div class="empty"><b>Aucune vaccination pour l\'instant</b>Touchez « Nouvelle vaccination » pour démarrer une fiche.</div>';
+    return;
+  }
+  const sorted=[...fiches].sort((a,b)=>(b._updated||0)-(a._updated||0));
+  cards.innerHTML=sorted.map(r=>{
+    const nom=(r.ident||"Sans nom").trim();
+    const d=(r.datevac?fmtDate(r.datevac):"Sans date")+(r.vaccin?" · "+r.vaccin:"");
+    const c=checks(r);
+    const b=c.warn.length?'<span class="badge high">À vérifier</span>':(c.todo.length?'<span class="badge">Incomplète</span>':'<span class="badge low">OK</span>');
+    return '<div class="card" data-id="'+r.id+'"><div><h3>'+esc(nom)+'</h3><small>'+esc(d)+'</small></div><div class="right">'+b+'<span class="chev">›</span></div></div>';
+  }).join("");
+  cards.querySelectorAll(".card").forEach(c=>c.addEventListener("click",()=>openFiche(c.dataset.id)));
+}
+
+/* ---------- Formulaire ---------- */
+function vaxSuggestions(){
+  const set=new Set(["Efluelda 60 µg HA/souche"]);
+  fiches.forEach(f=>{ if(f.vaccin) set.add(f.vaccin); });
+  return [...set];
+}
+function buildForm(){
+  $("#formFields").innerHTML='<datalist id="vaxList">'+vaxSuggestions().map(v=>'<option value="'+esc(v)+'">').join("")+'</datalist>'
+   +SCHEMA.map((sec,i)=>{
+    let body="", buf=[];
+    const flush=()=>{ if(buf.length){ body+='<div class="row2">'+buf.join("")+'</div>'; buf=[]; } };
+    sec.fields.forEach(f=>{ const h=fieldHTML(f); if(f.half) buf.push(h); else { flush(); body+=h; } });
+    flush();
+    if(sec.title==="Vaccin utilisé") body='<div class="field"><button type="button" class="btn small" id="btnLastVax">↺ Reprendre le dernier vaccin / lot</button></div>'+body;
+    if(sec.note) body='<p class="sec-note">'+esc(sec.note)+'</p>'+body;
+    return '<details class="sec" open data-sec="'+i+'">'
+      +'<summary><span class="lbl"><span class="tick"></span>'+esc(sec.title)+'</span><span class="arrow">›</span></summary>'
+      +'<div class="sec-body">'+body+'</div></details>';
+  }).join("");
+  $("#formFields").querySelectorAll("input,textarea").forEach(el=>{
+    el.addEventListener("input",afterChange);
+    el.addEventListener("change",afterChange);
+  });
+  document.querySelectorAll('input[name="ci_ac"]').forEach(el=>el.addEventListener("change",()=>{
+    if(el.checked && el.value==="Oui"){ const sc=$("#voie_1"); if(sc){ sc.checked=true; afterChange(); toast("Voie sous-cutanée sélectionnée"); } }
+  }));
+  $("#lot").addEventListener("input",e=>{ const p=e.target.selectionStart; e.target.value=e.target.value.toUpperCase(); e.target.setSelectionRange(p,p); });
+  $("#btnLastVax").addEventListener("click",()=>{
+    const v=lastVax(); if(!v){ toast("Aucun vaccin enregistré pour l'instant"); return; }
+    $("#vaccin").value=v.vaccin||""; $("#lot").value=v.lot||""; $("#peremp").value=v.peremp||"";
+    afterChange(); toast("Vaccin et lot repris");
+  });
+}
+function fieldHTML(f){
+  const wrapAttr=' id="w_'+f.id+'"';
+  if(f.type==="textarea")
+    return '<div class="field"'+wrapAttr+'><label for="'+f.id+'">'+esc(f.label)+'</label><textarea id="'+f.id+'"></textarea></div>';
+  if(f.type==="check")
+    return '<div class="field"'+wrapAttr+'><label class="check"><input type="checkbox" id="'+f.id+'"><span>'+esc(f.label)+'</span></label></div>';
+  if(f.type==="yn"||f.type==="seg"){
+    const opts=f.type==="yn"?YN:f.opts;
+    return '<div class="field"'+wrapAttr+'><span class="flabel">'+esc(f.label)+'</span><div class="seg">'
+      +opts.map((o,k)=>'<span class="opt'+(f.risk&&o==="Oui"?" risk":"")+'"><input type="radio" name="'+f.id+'" id="'+f.id+'_'+k+'" value="'+esc(o)+'">'
+        +'<label for="'+f.id+'_'+k+'">'+esc(o)+'</label></span>').join("")
+      +'</div><div class="alert hidden" id="al_'+f.id+'"></div></div>';
+  }
+  const extra=(f.list?' list="'+f.list+'"':"")+(f.type==="tel"?' inputmode="tel"':"")+(f.upper?' autocapitalize="characters"':"");
+  return '<div class="field"'+wrapAttr+'><label for="'+f.id+'">'+esc(f.label)+'</label>'
+    +'<input type="'+f.type+'" id="'+f.id+'"'+(f.ph?' placeholder="'+esc(f.ph)+'"':"")+extra+' autocomplete="off"></div>';
+}
+function getVal(f){
+  if(f.type==="yn"||f.type==="seg"){ const c=document.querySelector('input[name="'+f.id+'"]:checked'); return c?c.value:""; }
+  const el=document.getElementById(f.id); if(!el) return "";
+  return f.type==="check"?el.checked:el.value.trim();
+}
+function loadValues(rec){
+  FIELDS.forEach(f=>{
+    const v=rec[f.id];
+    if(f.type==="yn"||f.type==="seg"){
+      const opts=f.type==="yn"?YN:f.opts;
+      if(v){ const el=document.getElementById(f.id+"_"+opts.indexOf(v)); if(el) el.checked=true; }
+    } else if(f.type==="check"){ document.getElementById(f.id).checked=!!v; }
+    else { const el=document.getElementById(f.id); if(el) el.value=v==null?"":v; }
+  });
+  afterChange();
+}
+function collectValues(){
+  const out={};
+  FIELDS.forEach(f=>{
+    if(f.showIf){ const dep=FIELDS.find(x=>x.id===f.showIf[0]); if(getVal(dep)!==f.showIf[1]){ out[f.id]=f.type==="check"?false:""; return; } }
+    out[f.id]=getVal(f);
+  });
+  return out;
+}
+function afterChange(){
+  FIELDS.forEach(f=>{
+    if(!f.showIf) return;
+    const dep=FIELDS.find(x=>x.id===f.showIf[0]);
+    $("#w_"+f.id).classList.toggle("hidden",getVal(dep)!==f.showIf[1]);
+  });
+  const d=collectValues();
+  const al=(id,msg,red)=>{ const e=$("#al_"+id); if(!e) return; e.textContent=msg||""; e.classList.toggle("hidden",!msg); e.classList.toggle("red",!!red); };
+  al("bon", d.bon==="Non"?"S'assurer que la vaccination se fait sous prescription.":"");
+  al("presc", d.presc==="Aucune"?"Pas de vaccination sans bon ni prescription.":"",true);
+  al("ci_reac", d.ci_reac==="Oui"?"Contre-indication possible : vérifier le RCP / avis médical.":"",true);
+  al("ci_all", d.ci_all==="Oui"?"Vérifier les composants du vaccin dans le RCP.":"",true);
+  al("ci_fievre", d.ci_fievre==="Oui"?"Contre-indication temporaire possible : envisager de reporter.":"",true);
+  al("ci_ac", d.ci_ac==="Oui"?"Faire l'injection en sous-cutané.":"");
+  al("voie", d.ci_ac==="Oui"&&d.voie==="Intramusculaire"?"Patient sous anticoagulant : voie sous-cutanée attendue.":"",true);
+  SCHEMA.forEach((sec,i)=>{
+    const det=document.querySelector('details[data-sec="'+i+'"]'); if(!det) return;
+    det.classList.toggle("filled",sec.fields.some(f=>{ const v=d[f.id]; return v===true||(typeof v==="string"&&v!==""); }));
+  });
+  $("#statusBox").innerHTML=statusHTML(d);
+}
+
+function showForm(){ $("#listView").classList.add("hidden"); $("#formView").classList.remove("hidden"); window.scrollTo(0,0); }
+function showList(){ $("#formView").classList.add("hidden"); $("#listView").classList.remove("hidden"); window.scrollTo(0,0); }
+
+function newFiche(){
+  currentId=null; showForm(); buildForm();
+  const v=lastVax()||{};
+  loadValues({datevac:today(),heure:nowTime(),voie:"Intramusculaire",vaccin:v.vaccin||"",lot:v.lot||"",peremp:v.peremp||""});
+}
+function openFiche(id){ currentId=id; const r=fiches.find(x=>x.id===id)||{}; showForm(); buildForm(); loadValues(r); }
+function saveCurrent(goBack){
+  const data=collectValues(), now=Date.now();
+  if(currentId){ const i=fiches.findIndex(r=>r.id===currentId); fiches[i]={...fiches[i],...data,_updated:now}; }
+  else { currentId=uid(); fiches.push({id:currentId,...data,_created:now,_updated:now}); }
+  if(data.vaccin||data.lot) setLastVax({vaccin:data.vaccin,lot:data.lot,peremp:data.peremp});
+  persist();
+  if(goBack){ showList(); renderList(); toast("Fiche enregistrée"); }
+}
+function deleteCurrent(){
+  if(!currentId){ showList(); return; }
+  if(!confirm("Supprimer définitivement cette fiche ?")) return;
+  fiches=fiches.filter(r=>r.id!==currentId);
+  persist(); showList(); renderList(); toast("Fiche supprimée");
+}
+
+/* ---------- Lignes communes (report + PDF) ---------- */
+function sectionRows(sec,d){
+  const rows=[];
+  sec.fields.forEach(f=>{
+    const v=display(f,d[f.id]);
+    if(v===""||v==null) return;
+    rows.push({label:f.label.replace(/ \?$/,""),value:v,risk:!!(f.risk&&v==="Oui")});
+  });
+  return rows;
+}
+
+/* ---------- PDF (impression navigateur, 100 % local) ---------- */
+function buildPrintHTML(){
+  const d=collectValues(), c=checks(d);
+  let h='<div class="p-doc"><div class="p-head"><h1>Fiche de vaccination</h1><div class="p-meta">';
+  h+='<b>'+esc(d.ident||"Personne non identifiée")+'</b>';
+  if(d.ddn) h+=' · né(e) le '+fmtDate(d.ddn);
+  h+='<br>Vaccination du '+fmtDate(d.datevac||today())+(d.heure?' à '+d.heure:'');
+  h+='</div></div>';
+  h+=c.warn.length?'<div class="p-status warn">Points à vérifier : '+c.warn.map(esc).join(" · ")+'</div>'
+                  :'<div class="p-status">Aucune contre-indication relevée lors du recueil.</div>';
+  SCHEMA.forEach(sec=>{
+    const rows=sectionRows(sec,d).filter(r=>!(sec.title==="Personne vaccinée"&&(r.label.startsWith("Nom")||r.label.startsWith("Date"))));
+    if(!rows.length) return;
+    h+='<div class="p-sec"><h2>'+esc(sec.title)+'</h2><table class="p-tab">'
+      +rows.map(r=>'<tr><td class="p-lbl">'+esc(r.label)+'</td><td class="p-val"'+(r.risk?' style="color:#a83a48"':'')+'>'+esc(r.value)+'</td></tr>').join("")
+      +'</table></div>';
+  });
+  h+='<div class="p-sign"><div>Infirmière — nom, date et signature</div><div>Observations complémentaires</div></div>';
+  h+='<div class="p-foot">Document de traçabilité — données de santé à caractère personnel. '
+    +'À conserver et détruire selon les règles du cabinet. Édité le '+fmtDate(today())+'.</div></div>';
+  return h;
+}
+function doPrint(){
+  saveCurrent(false);
+  $("#printArea").innerHTML=buildPrintHTML();
+  const d=collectValues();
+  const slug=(d.ident||"vaccination").replace(/[^a-z0-9]/gi,"-").replace(/-+/g,"-");
+  const oldTitle=document.title;
+  document.title="Vaccination_"+slug+"_"+(d.datevac||today());
+  setTimeout(()=>{ window.print(); setTimeout(()=>{ document.title=oldTitle; },1200); },80);
+}
+
+/* ---------- Sauvegarde / Import ---------- */
+function download(filename,text){
+  const blob=new Blob([text],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url; a.download=filename; document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},500);
+}
+function exportAll(){
+  if(!fiches.length){ toast("Rien à sauvegarder"); return; }
+  download("vaccinations-"+today()+".json",JSON.stringify(fiches,null,2));
+  toast("Sauvegarde enregistrée");
+}
+function exportOne(){
+  saveCurrent(false);
+  const r=fiches.find(x=>x.id===currentId);
+  download("vaccination-"+(r.ident||"fiche").replace(/[^a-z0-9]/gi,"_")+".json",JSON.stringify([r],null,2));
+  toast("Fiche exportée");
+}
+function importFile(file){
+  const fr=new FileReader();
+  fr.onload=()=>{
+    try{
+      const arr=JSON.parse(fr.result), list=Array.isArray(arr)?arr:[arr];
+      let n=0;
+      list.forEach(r=>{
+        if(!r||typeof r!=="object") return;
+        r.id=(r.id&&!fiches.some(x=>x.id===r.id))?r.id:uid();
+        r._updated=r._updated||Date.now();
+        fiches.push(r); n++;
+      });
+      persist(); renderList();
+      toast(n+(n>1?" fiches importées":" fiche importée"));
+    }catch(e){ toast("Fichier illisible"); }
+  };
+  fr.readAsText(file);
+}
+
+/* ---------- Modales ---------- */
+function openModal(html){ $("#modal").innerHTML=html; $("#modalBg").classList.add("show"); }
+function closeModal(){ $("#modalBg").classList.remove("show"); }
+$("#modalBg").addEventListener("click",e=>{ if(e.target===$("#modalBg")) closeModal(); });
+
+function showCopyModal(){
+  const d=collectValues();
+  let h='<h2>Vue pour report</h2><p>À lire pendant la saisie (logiciel, DMP, carnet de vaccination).</p>';
+  h+='<div class="rep-h">'+esc(d.ident||"Personne non identifiée")+(d.datevac?' <span>'+fmtDate(d.datevac)+(d.heure?' · '+d.heure:'')+'</span>':'')+'</div>';
+  h+=statusHTML(d);
+  ["Vaccin utilisé","Administration","Contre-indications (RCP)","Assurance maladie","Médecin traitant","Personne vaccinée"].forEach(t=>{
+    const sec=SCHEMA.find(s=>s.title===t), rows=sectionRows(sec,d);
+    if(!rows.length) return;
+    h+='<div class="rep-sec"><h3>'+esc(t)+'</h3><ul>'
+      +rows.map(r=>'<li>'+esc(r.label)+'<span class="rep-v'+(r.risk?' risk':'')+'">'+esc(r.value)+'</span></li>').join("")+'</ul></div>';
+  });
+  h+='<button class="btn primary block" id="closeM" style="margin-top:6px">Fermer</button>';
+  openModal(h);
+  $("#closeM").addEventListener("click",closeModal);
+}
+function showInfo(){
+  openModal('<h2>Confidentialité et usage</h2><div class="info-block">'
+    +'<p>• Tout est stocké <b>uniquement sur ce téléphone</b>. Aucune donnée ne part sur internet : l\'outil fonctionne hors-ligne.</p>'
+    +'<p>• Le <b>dernier vaccin et son lot</b> sont repris automatiquement sur chaque nouvelle fiche : pratique pour une tournée avec la même boîte. Vérifiez-les si vous changez de lot.</p>'
+    +'<p>• Un <b>anticoagulant</b> fait basculer la voie en sous-cutané. Un vaccin <b>périmé</b> à la date de l\'injection est signalé.</p>'
+    +'<p>• <b>Créer le PDF</b> ouvre l\'impression du navigateur : choisissez « Enregistrer au format PDF ».</p>'
+    +'<p>• Faites une <b>Sauvegarde</b> régulière (bouton sur la liste) : c\'est la seule protection en cas de perte du téléphone.</p>'
+    +'</div><button class="btn primary block" id="closeM" style="margin-top:6px">Compris</button>');
+  $("#closeM").addEventListener("click",closeModal);
+}
+
+let toastT;
+function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("show");
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),1900); }
+
+$("#btnNew").addEventListener("click",newFiche);
+$("#btnBack").addEventListener("click",()=>{showList();renderList();});
+$("#btnSave").addEventListener("click",()=>saveCurrent(true));
+$("#btnCopy").addEventListener("click",showCopyModal);
+$("#btnPdf").addEventListener("click",doPrint);
+$("#btnDelete").addEventListener("click",deleteCurrent);
+$("#btnShareOne").addEventListener("click",exportOne);
+$("#btnExport").addEventListener("click",exportAll);
+$("#btnInfo").addEventListener("click",showInfo);
+$("#btnImport").addEventListener("click",()=>$("#fileInput").click());
+$("#fileInput").addEventListener("change",e=>{ if(e.target.files[0]) importFile(e.target.files[0]); e.target.value=""; });
+
+renderList();
+
+if("serviceWorker" in navigator && location.protocol.startsWith("http")){
+  window.addEventListener("load",()=>{ navigator.serviceWorker.register("sw.js").catch(()=>{}); });
+}
+</script>
+</body>
+</html>
