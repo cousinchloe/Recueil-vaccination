@@ -1,8 +1,8 @@
 /* Service worker — met l'outil en cache pour un fonctionnement hors ligne.
    Aucune donnée patient ne transite ici : seuls les fichiers de l'application
-   (page, icônes, manifeste) sont mis en cache. Les recueils restent dans le
-   localStorage du navigateur et ne sont jamais lus par ce script. */
-const VERSION = "recueil-vaccination-v4";
+   (page, icônes, manifeste) sont mis en cache. Les fiches restent dans le
+   localStorage du navigateur et ne sont jamais lues par ce script. */
+const VERSION = "recueil-vaccination-v5";
 const SHELL = [
   "./",
   "./index.html",
@@ -29,23 +29,36 @@ self.addEventListener("activate", e => {
   );
 });
 
-/* Cache d'abord : l'outil s'ouvre instantanément et fonctionne sans réseau.
-   En parallèle, on rafraîchit discrètement le cache si le réseau répond,
-   pour qu'une correction publiée soit récupérée à la prochaine ouverture.
-   « reload » / « no-cache » : on ignore le cache HTTP de 10 min de GitHub Pages. */
+function store(req, resp) {
+  if (resp && resp.status === 200 && resp.type === "basic") {
+    const copy = resp.clone();
+    caches.open(VERSION).then(c => c.put(req, copy));
+  }
+  return resp;
+}
+
 self.addEventListener("fetch", e => {
-  if (e.request.method !== "GET") return;
+  const req = e.request;
+  if (req.method !== "GET") return;
+
+  /* Page : réseau d'abord (toujours la dernière version publiée),
+     avec repli sur la copie locale si pas de réseau ou réseau trop lent (3 s). */
+  if (req.mode === "navigate") {
+    e.respondWith(new Promise(resolve => {
+      let done = false;
+      const fallback = () => caches.match(req).then(h => h || caches.match("./index.html"));
+      const timer = setTimeout(() => { if (!done) { done = true; resolve(fallback()); } }, 3000);
+      fetch(req.url, { cache: "no-cache" })
+        .then(resp => { store(req, resp); if (!done) { done = true; clearTimeout(timer); resolve(resp); } })
+        .catch(() => { if (!done) { done = true; clearTimeout(timer); resolve(fallback()); } });
+    }));
+    return;
+  }
+
+  /* Icônes, manifeste : copie locale d'abord, rafraîchie en arrière-plan. */
   e.respondWith(
-    caches.match(e.request).then(hit => {
-      const live = fetch(e.request.url, { cache: "no-cache" })
-        .then(resp => {
-          if (resp && resp.status === 200 && resp.type === "basic") {
-            const copy = resp.clone();
-            caches.open(VERSION).then(c => c.put(e.request, copy));
-          }
-          return resp;
-        })
-        .catch(() => hit);
+    caches.match(req).then(hit => {
+      const live = fetch(req.url, { cache: "no-cache" }).then(r => store(req, r)).catch(() => hit);
       return hit || live;
     })
   );
