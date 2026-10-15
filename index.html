@@ -168,7 +168,7 @@
   <div class="topbar-row">
     <div class="brand">
       <b>Recueil Vaccination</b>
-      <span>Contre-indications · traçabilité · hors-ligne · v5</span>
+      <span>Contre-indications · traçabilité · hors-ligne · v6</span>
     </div>
     <button class="iconbtn ghost" id="btnInfo" title="Confidentialité et mode d'emploi">i</button>
   </div>
@@ -465,8 +465,17 @@ function sectionRows(sec,d){
   sec.fields.forEach(f=>{
     const v=display(f,d[f.id]);
     if(v===""||v==null) return;
-    rows.push({label:f.label.replace(/ \?$/,""),value:v,risk:!!(f.risk&&v==="Oui")});
+    if(f.id==="adeli"||f.id==="rpps") return;
+    const row={label:f.label.replace(/ \?$/,""),value:v,risk:!!(f.risk&&v==="Oui")};
+    if(f.id==="vaccinateur"){
+      row.label="Vacciné par";
+      const ids=[d.adeli?"ADELI "+d.adeli:"",d.rpps?"RPPS "+d.rpps:""].filter(Boolean).join(" · ");
+      if(ids) row.sub=ids;
+    }
+    rows.push(row);
   });
+  if(!d.vaccinateur&&(d.adeli||d.rpps)&&sec.fields.some(f=>f.id==="adeli"))
+    rows.unshift({label:"Infirmière",value:"—",sub:[d.adeli?"ADELI "+d.adeli:"",d.rpps?"RPPS "+d.rpps:""].filter(Boolean).join(" · ")});
   return rows;
 }
 
@@ -485,7 +494,7 @@ function buildPrintHTML(){
     const rows=sectionRows(sec,d).filter(r=>!(sec.title==="Personne vaccinée"&&(r.label.startsWith("Nom")||r.label.startsWith("Date"))));
     if(!rows.length) return;
     h+='<div class="p-sec"><h2>'+esc(sec.title)+'</h2><table class="p-tab">'
-      +rows.map(r=>'<tr><td class="p-lbl">'+esc(r.label)+'</td><td class="p-val"'+(r.risk?' style="color:#a83a48"':'')+'>'+esc(r.value)+'</td></tr>').join("")
+      +rows.map(r=>'<tr><td class="p-lbl">'+esc(r.label)+'</td><td class="p-val"'+(r.risk?' style="color:#a83a48"':'')+'>'+esc(r.value)+(r.sub?'<br><i style="font-weight:400;color:#555;font-size:8pt">'+esc(r.sub)+'</i>':'')+'</td></tr>').join("")
       +'</table></div>';
   });
   h+='</div>';
@@ -553,10 +562,12 @@ function renderImage(){
       s.rows.forEach(r=>{
         font("400",26); const ll=wrapText(ctx,r.label,LW);
         font("700",27); const vl=wrapText(ctx,r.value,VW);
-        const h=Math.max(ll.length,vl.length)*35+22;
+        const sub=r.sub?1:0;
+        const h=Math.max(ll.length,vl.length+sub*0.8)*35+22;
         if(draw){
           font("400",26); ctx.fillStyle="#4a5a6c"; ll.forEach((l,i)=>ctx.fillText(l,P+18,y+36+i*35));
           font("700",27); ctx.fillStyle=r.risk?"#a83a48":"#14273d"; vl.forEach((l,i)=>ctx.fillText(l,VX,y+36+i*35));
+          if(sub){ font("italic 400",22); ctx.fillStyle="#6b7887"; ctx.fillText(r.sub,VX,y+36+vl.length*35-4); }
           ctx.fillStyle="#e0e6ee"; ctx.fillRect(P,y+h-2,W-2*P,2);
         }
         y+=h;
@@ -650,7 +661,7 @@ function showCopyModal(){
     const sec=SCHEMA.find(s=>s.title===t), rows=sectionRows(sec,d);
     if(!rows.length) return;
     h+='<div class="rep-sec"><h3>'+esc(t)+'</h3><ul>'
-      +rows.map(r=>'<li>'+esc(r.label)+'<span class="rep-v'+(r.risk?' risk':'')+'">'+esc(r.value)+'</span></li>').join("")+'</ul></div>';
+      +rows.map(r=>'<li>'+esc(r.label)+'<span class="rep-v'+(r.risk?' risk':'')+'">'+esc(r.value)+(r.sub?'<br><em style="font-style:italic;font-weight:400">'+esc(r.sub)+'</em>':'')+'</span></li>').join("")+'</ul></div>';
   });
   h+='<button class="btn primary block" id="closeM" style="margin-top:6px">Fermer</button>';
   openModal(h);
@@ -663,7 +674,7 @@ function showInfo(){
     +'<p>• Le nom de l\'<b>infirmière qui vaccine</b> et ses n° ADELI / RPPS sont retenus sur ce téléphone : saisis une fois, ils sont repris sur chaque nouvelle fiche.</p>'
     +'<p>• Un <b>anticoagulant</b> fait basculer la voie en sous-cutané. Un vaccin <b>périmé</b> à la date de l\'injection est signalé.</p>'
     +'<p>• <b>Image pour le dossier</b> crée une photo de la fiche : choisissez « Enregistrer l\'image », puis ajoutez-la au dossier patient depuis Photos.</p>'
-    +'<p>• Version de l\'outil : <b>v5</b> (15/10/2026), affichée sous le titre.</p>'
+    +'<p>• Version de l\'outil : <b>v6</b> (15/10/2026), affichée sous le titre.</p>'
     +'<p>• <b>Créer le PDF</b> ouvre l\'impression du navigateur : choisissez « Enregistrer au format PDF ».</p>'
     +'<p>• Faites une <b>Sauvegarde</b> régulière (bouton sur la liste) : c\'est la seule protection en cas de perte du téléphone.</p>'
     +'</div><button class="btn primary block" id="closeM" style="margin-top:6px">Compris</button>');
