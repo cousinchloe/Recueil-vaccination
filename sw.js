@@ -2,7 +2,7 @@
    Aucune donnée patient ne transite ici : seuls les fichiers de l'application
    (page, icônes, manifeste) sont mis en cache. Les recueils restent dans le
    localStorage du navigateur et ne sont jamais lus par ce script. */
-const VERSION = "recueil-vaccination-v2";
+const VERSION = "recueil-vaccination-v3";
 const SHELL = [
   "./",
   "./index.html",
@@ -16,7 +16,7 @@ const SHELL = [
 self.addEventListener("install", e => {
   e.waitUntil(
     caches.open(VERSION)
-      .then(c => c.addAll(SHELL))
+      .then(c => c.addAll(SHELL.map(u => new Request(u, { cache: "reload" }))))
       .then(() => self.skipWaiting())
   );
 });
@@ -31,12 +31,13 @@ self.addEventListener("activate", e => {
 
 /* Cache d'abord : l'outil s'ouvre instantanément et fonctionne sans réseau.
    En parallèle, on rafraîchit discrètement le cache si le réseau répond,
-   pour qu'une correction publiée soit récupérée à la prochaine ouverture. */
+   pour qu'une correction publiée soit récupérée à la prochaine ouverture.
+   « reload » / « no-cache » : on ignore le cache HTTP de 10 min de GitHub Pages. */
 self.addEventListener("fetch", e => {
   if (e.request.method !== "GET") return;
   e.respondWith(
     caches.match(e.request).then(hit => {
-      const live = fetch(e.request)
+      const live = fetch(e.request.url, { cache: "no-cache" })
         .then(resp => {
           if (resp && resp.status === 200 && resp.type === "basic") {
             const copy = resp.clone();
