@@ -216,6 +216,7 @@
    Clé distincte de celle du Recueil BSI (même domaine github.io). */
 const STORE_KEY="recueils_vaccination_v1";
 const LASTVAX_KEY="vaccination_dernier_lot_v1";
+const NURSE_KEY="vaccination_vaccinateur_v1";
 const $=s=>document.querySelector(s);
 const YN=["Non","Oui"];
 
@@ -256,6 +257,9 @@ const SCHEMA=[
    {id:"peremp", label:"Date de péremption", type:"month"},
  ]},
  { title:"Administration", fields:[
+   {id:"vaccinateur", label:"Vacciné par (infirmière)", type:"text", ph:"ex. Chloé COUSIN, IDE"},
+   {id:"adeli", label:"N° ADELI", type:"text", num:true, half:true},
+   {id:"rpps",  label:"N° RPPS", type:"text", num:true, half:true},
    {id:"datevac", label:"Date", type:"date", half:true},
    {id:"heure",   label:"Heure", type:"time", half:true},
    {id:"voie",    label:"Voie", type:"seg", opts:["Intramusculaire","Sous-cutanée"]},
@@ -272,6 +276,8 @@ function persist(){ try{localStorage.setItem(STORE_KEY,JSON.stringify(fiches));}
   catch(e){toast("Stockage saturé — faites une sauvegarde");} }
 function lastVax(){ try{return JSON.parse(localStorage.getItem(LASTVAX_KEY))||null;}catch(e){return null;} }
 function setLastVax(v){ try{localStorage.setItem(LASTVAX_KEY,JSON.stringify(v));}catch(e){} }
+function getNurse(){ try{const v=JSON.parse(localStorage.getItem(NURSE_KEY)); return v&&typeof v==="object"?v:{};}catch(e){return{};} }
+function setNurse(v){ try{localStorage.setItem(NURSE_KEY,JSON.stringify(v));}catch(e){} }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
 const p2=n=>String(n).padStart(2,"0");
 function today(){ const d=new Date(); return d.getFullYear()+"-"+p2(d.getMonth()+1)+"-"+p2(d.getDate()); }
@@ -301,6 +307,7 @@ function checks(d){
   if(!d.vaccin) todo.push("Vaccin");
   if(!d.lot) todo.push("N° de lot");
   if(!d.info_ei) todo.push("Information sur les effets secondaires");
+  if(!d.vaccinateur) todo.push("Nom de l'infirmière qui vaccine");
   return {warn,todo};
 }
 function statusHTML(d){
@@ -341,7 +348,7 @@ function buildForm(){
    +SCHEMA.map((sec,i)=>{
     let body="", buf=[];
     const flush=()=>{ if(buf.length){ body+='<div class="row2">'+buf.join("")+'</div>'; buf=[]; } };
-    sec.fields.forEach(f=>{ const h=fieldHTML(f); if(f.half) buf.push(h); else { flush(); body+=h; } });
+    sec.fields.forEach(f=>{ const h=fieldHTML(f); if(f.half){ buf.push(h); if(buf.length===2) flush(); } else { flush(); body+=h; } });
     flush();
     if(sec.title==="Vaccin utilisé") body='<div class="field"><button type="button" class="btn small" id="btnLastVax">↺ Reprendre le dernier vaccin / lot</button></div>'+body;
     if(sec.note) body='<p class="sec-note">'+esc(sec.note)+'</p>'+body;
@@ -376,7 +383,7 @@ function fieldHTML(f){
         +'<label for="'+f.id+'_'+k+'">'+esc(o)+'</label></span>').join("")
       +'</div><div class="alert hidden" id="al_'+f.id+'"></div></div>';
   }
-  const extra=(f.list?' list="'+f.list+'"':"")+(f.type==="tel"?' inputmode="tel"':"")+(f.upper?' autocapitalize="characters"':"");
+  const extra=(f.list?' list="'+f.list+'"':"")+(f.type==="tel"?' inputmode="tel"':"")+(f.upper?' autocapitalize="characters"':"")+(f.num?' inputmode="numeric"':"");
   return '<div class="field"'+wrapAttr+'><label for="'+f.id+'">'+esc(f.label)+'</label>'
     +'<input type="'+f.type+'" id="'+f.id+'"'+(f.ph?' placeholder="'+esc(f.ph)+'"':"")+extra+' autocomplete="off"></div>';
 }
@@ -432,13 +439,15 @@ function showList(){ $("#formView").classList.add("hidden"); $("#listView").clas
 function newFiche(){
   currentId=null; showForm(); buildForm();
   const v=lastVax()||{};
-  loadValues({datevac:today(),heure:nowTime(),voie:"Intramusculaire",vaccin:v.vaccin||"",lot:v.lot||"",peremp:v.peremp||""});
+  const n=getNurse();
+  loadValues({vaccinateur:n.nom||"",adeli:n.adeli||"",rpps:n.rpps||"",datevac:today(),heure:nowTime(),voie:"Intramusculaire",vaccin:v.vaccin||"",lot:v.lot||"",peremp:v.peremp||""});
 }
 function openFiche(id){ currentId=id; const r=fiches.find(x=>x.id===id)||{}; showForm(); buildForm(); loadValues(r); }
 function saveCurrent(goBack){
   const data=collectValues(), now=Date.now();
   if(currentId){ const i=fiches.findIndex(r=>r.id===currentId); fiches[i]={...fiches[i],...data,_updated:now}; }
   else { currentId=uid(); fiches.push({id:currentId,...data,_created:now,_updated:now}); }
+  if(data.vaccinateur||data.adeli||data.rpps) setNurse({nom:data.vaccinateur,adeli:data.adeli,rpps:data.rpps});
   if(data.vaccin||data.lot) setLastVax({vaccin:data.vaccin,lot:data.lot,peremp:data.peremp});
   persist();
   if(goBack){ showList(); renderList(); toast("Fiche enregistrée"); }
@@ -480,7 +489,7 @@ function buildPrintHTML(){
       +'</table></div>';
   });
   h+='</div>';
-  h+='<div class="p-sign"><div>Infirmière — nom, date et signature</div><div>Observations complémentaires</div></div>';
+  h+='<div class="p-sign"><div>Infirmière — '+esc(d.vaccinateur||'nom')+(d.rpps?' · RPPS '+esc(d.rpps):'')+' — signature</div><div>Observations complémentaires</div></div>';
   h+='<div class="p-foot">Document de traçabilité — données de santé à caractère personnel. '
     +'À conserver et détruire selon les règles du cabinet. Édité le '+fmtDate(today())+'.</div></div>';
   return h;
@@ -651,6 +660,7 @@ function showInfo(){
   openModal('<h2>Confidentialité et usage</h2><div class="info-block">'
     +'<p>• Tout est stocké <b>uniquement sur ce téléphone</b>. Aucune donnée ne part sur internet : l\'outil fonctionne hors-ligne.</p>'
     +'<p>• Le <b>dernier vaccin et son lot</b> sont repris automatiquement sur chaque nouvelle fiche : pratique pour une tournée avec la même boîte. Vérifiez-les si vous changez de lot.</p>'
+    +'<p>• Le nom de l\'<b>infirmière qui vaccine</b> et ses n° ADELI / RPPS sont retenus sur ce téléphone : saisis une fois, ils sont repris sur chaque nouvelle fiche.</p>'
     +'<p>• Un <b>anticoagulant</b> fait basculer la voie en sous-cutané. Un vaccin <b>périmé</b> à la date de l\'injection est signalé.</p>'
     +'<p>• <b>Image pour le dossier</b> crée une photo de la fiche : choisissez « Enregistrer l\'image », puis ajoutez-la au dossier patient depuis Photos.</p>'
     +'<p>• <b>Créer le PDF</b> ouvre l\'impression du navigateur : choisissez « Enregistrer au format PDF ».</p>'

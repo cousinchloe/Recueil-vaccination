@@ -2,7 +2,7 @@
    Aucune donnée patient ne transite ici : seuls les fichiers de l'application
    (page, icônes, manifeste) sont mis en cache. Les recueils restent dans le
    localStorage du navigateur et ne sont jamais lus par ce script. */
-const VERSION = "recueil-vaccination-v3";
+const VERSION = "recueil-vaccination-v4";
 const SHELL = [
   "./",
   "./index.html",
